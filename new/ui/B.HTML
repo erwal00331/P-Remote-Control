@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>P-Remote Control</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Re-adding CSS for Chat Interface as it was removed from Tab Content */
+    .chat-interface {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+      background: #1e1e1e;
+    }
+
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .chat-message {
+      max-width: 80%;
+      padding: 10px 15px;
+      border-radius: 12px;
+      line-height: 1.5;
+      font-size: 14px;
+      position: relative;
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+      background: #3b82f6;
+      color: white;
+      border-bottom-right-radius: 2px;
+    }
+
+    .chat-message.ai {
+      align-self: flex-start;
+      background: #333;
+      color: #eee;
+      border-bottom-left-radius: 2px;
+      border: 1px solid #444;
+    }
+
+    .chat-input-area {
+      display: flex;
+      padding: 8px 10px;
+      background: #252525;
+      border-top: 1px solid #333;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .chat-input-area textarea {
+      flex: 1;
+      background: #111;
+      border: 1px solid #444;
+      color: white;
+      padding: 8px 10px;
+      border-radius: 8px;
+      resize: none;
+      min-height: 36px;
+      max-height: 150px;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.4;
+      overflow-y: auto;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .chat-input-area textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    .chat-input-area button {
+      flex: 0 0 auto;
+      padding: 6px 14px;
+      border-radius: 6px;
+      background: #3b82f6;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .chat-input-area button:hover {
+      background: #2563eb;
+    }
+
+    /* Device Selection Card */
+    .device-selection-card {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    .device-selection-header {
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #ddd;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .device-selection-list {
+      max-height: 150px;
+      overflow-y: auto;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 5px;
+      margin-bottom: 10px;
+    }
+
+    .device-option {
+      display: flex;
+      align-items: center;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+
+    .device-option:hover {
+      background: #333;
+    }
+
+    .device-option input {
+      margin-right: 8px;
+    }
+
+    .device-selection-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .device-selection-actions button {
+      padding: 5px 15px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .btn-cancel {
+      background: #444;
+      color: #ccc;
+    }
+
+    .btn-confirm {
+      background: #10b981;
+      color: white;
+    }
+
+    /* AI Frames in Chat */
+    .chat-task-monitor {
+      margin-top: 10px;
+      background: #000;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 5px;
+      max-width: 100%;
+    }
+
+    .monitor-header {
+      padding: 5px 10px;
+      font-size: 12px;
+      color: #aaa;
+      border-bottom: 1px solid #333;
+      margin-bottom: 5px;
+    }
+
+    .monitor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 10px;
+    }
+
+    /* 全屏图片查看模态框 */
+    #full-image-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      cursor: zoom-out;
+    }
+
+    #full-image-modal img {
+      max-width: 95%;
+      max-height: 95%;
+      object-fit: contain;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .device-slot {
+      position: relative;
+      aspect-ratio: 16/9;
+      background: #111;
+      border: 1px solid #333;
+      overflow: hidden;
+    }
+
+    .device-slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .device-slot .label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      font-size: 10px;
+      padding: 2px 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .device-slot .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 4px;
+    }
+
+    .status-dot.running {
+      background: #3b82f6;
+      box-shadow: 0 0 5px #3b82f6;
+    }
+
+    .status-dot.completed {
+      background: #10b981;
+    }
+
+    .status-dot.failed {
+      background: #ef4444;
+    }
+
+    .status-dot.asking {
+      background: #eab308;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #444;
+      transition: 0.3s;
+      border-radius: 20px;
+    }
+
+    .toggle-slider:before {
+      content: "";
+      position: absolute;
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked+.toggle-slider {
+      background: #3b82f6;
+    }
+
+    .toggle-switch input:checked+.toggle-slider:before {
+      transform: translateX(16px);
+    }
+
+    .ai-debug-panel {
+      width: 380px;
+      min-width: 320px;
+      background: #1a1a1a;
+      border-left: 1px solid #333;
+      display: flex !important;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .ai-debug-panel.hidden {
+      display: none !important;
+    }
+
+    .debug-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: #222;
+      border-bottom: 1px solid #333;
+      font-size: 13px;
+      font-weight: bold;
+      color: #eab308;
+    }
+
+    .debug-ai-view {
+      padding: 8px;
+      border-bottom: 1px solid #333;
+    }
+
+    .debug-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 8px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .debug-log-entry {
+      padding: 4px 6px;
+      margin-bottom: 3px;
+      border-radius: 3px;
+      background: #222;
+      border-left: 3px solid #444;
+    }
+
+    .debug-log-entry.step-start {
+      border-left-color: #3b82f6;
+    }
+
+    .debug-log-entry.step-action {
+      border-left-color: #eab308;
+    }
+
+    .debug-log-entry.step-success {
+      border-left-color: #10b981;
+    }
+
+    .debug-log-entry.step-fail {
+      border-left-color: #ef4444;
+    }
+
+    .debug-log-entry.step-done {
+      border-left-color: #a855f7;
+    }
+
+    .debug-log-entry .log-time {
+      color: #666;
+      font-size: 10px;
+    }
+
+    .debug-log-entry .log-text {
+      color: #ccc;
+    }
+
+    .debug-log-entry .log-action {
+      color: #eab308;
+      font-weight: bold;
+    }
+
+    .debug-log-entry .log-thought {
+      color: #888;
+      font-style: italic;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 连接弹窗 -->
+  <div id="overlay" class="modal-overlay">
+    <div class="modal-box">
+      <h3>连接本地网关</h3>
+      <p style="font-size: 12px; color: #888; text-align: center">请确保Python客户端已在运行</p>
+      <input id="ws-url" value="ws://localhost:8000/ws" placeholder="ws地址" />
+      <button class="primary" onclick="connect()" style="width: 100%; margin-top: 15px; padding: 10px">
+        开始连接
+      </button>
+    </div>
+  </div>
+
+  <!-- 全屏图片查看器 -->
+  <div id="full-image-modal" onclick="this.style.display='none'">
+    <img id="full-image-view" src="" />
+  </div>
+
+  <!-- 添加按钮弹窗 -->
+  <div id="add-button-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3>添加按钮</h3>
+      <div class="form-row">
+        <label>按钮名称</label>
+        <input id="new-btn-name" placeholder="输入按钮名称" />
+      </div>
+      <div class="form-row">
+        <label>分组</label>
+        <input id="new-btn-group" value="默认分组" />
+      </div>
+      <div class="form-row">
+        <label>区域坐标 (将从画面中框选)</label>
+        <input id="new-btn-pos" readonly placeholder="点击画面框选区域..." />
+      </div>
+      <div class="btn-row">
+        <button onclick="closeModal('add-button-modal')">取消</button>
+        <button class="primary" onclick="saveNewButton()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加OCR区域弹窗 -->
+  <div id="add-ocr-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3>添加OCR区域</h3>
+      <div class="form-row">
+        <label>区域名称</label>
+        <input id="new-ocr-name" placeholder="输入区域名称" />
+      </div>
+      <div class="form-row">
+        <label>数据类型</label>
+        <select id="new-ocr-type">
+          <option value="字符串">字符串</option>
+          <option value="数字">数字</option>
+          <option value="时间">时间 (00:00)</option>
+          <option value="分数">分数 (x/y)</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>区域坐标 (将从画面中框选)</label>
+        <input id="new-ocr-pos" readonly placeholder="点击画面框选区域..." />
+      </div>
+      <div class="btn-row">
+        <button onclick="closeModal('add-ocr-modal')">取消</button>
+        <button class="primary" onclick="saveNewOcr()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 左侧控制栏 -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h3>P-Remote</h3>
+      <button onclick="listDev()" style="flex: 0; padding: 4px 8px">↻</button>
+    </div>
+    <!-- 平台状态指示器 -->
+    <div id="platform-badge"
+      style="display: none; padding: 4px 10px; font-size: 10px; text-align: center; border-bottom: 1px solid var(--border); cursor: pointer;"
+      title="点击查看详情" onclick="showPlatformDetails()">
+    </div>
+
+    <!-- 标签页导航 -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('devices')">设备</button>
+      <button class="tab-btn" onclick="switchTab('buttons')">按钮</button>
+      <button class="tab-btn" onclick="switchTab('ocr')">OCR</button>
+      <button class="tab-btn" onclick="switchTab('scripts')">脚本</button>
+      <button class="tab-btn" onclick="switchTab('ai')" style="color: #a855f7">AI</button>
+      <button class="tab-btn" onclick="switchTab('dispatch')" style="color: var(--warning)">分发</button>
+    </div>
+
+    <!-- 设备标签页 -->
+    <div id="tab-devices" class="tab-content active">
+      <div class="filter-section">
+        <div class="filter-title">
+          <span>组筛选</span>
+          <span style="cursor: pointer; color: var(--accent)" onclick="toggleAllGroups(true)">全选</span>
+        </div>
+        <div id="group-filter-container" class="group-tags">
+          <span style="font-size: 11px; color: #555">等待数据...</span>
+        </div>
+      </div>
+      <div id="dev-container" class="list-container"></div>
+      <div class="control-panel">
+        <div class="group">
+          <div class="group-title">控制通道 <small style="color: #666; font-weight: normal">(视频控制)</small></div>
+          <div class="row">
+            <button id="mode-p2p" class="active" onclick="setMode('p2p')" title="需要建立P2P对等连接，低延迟">P2P</button>
+            <button id="mode-tcp" onclick="setMode('tcp')" title="通过服务器转发，无需额外连接">TCP</button>
+          </div>
+          <div id="p2p-stat" style="font-size: 10px; margin-top: 6px; color: #888; text-align: center">
+            P2P 未建立
+          </div>
+          <div id="p2p-auth-stat"
+            style="font-size: 10px; margin-top: 4px; color: #888; text-align: center; display: none;">
+            🔐 等待权限验证...
+          </div>
+        </div>
+        <div class="group">
+          <div class="group-title">远程显示器</div>
+          <div class="row">
+            <input id="win" type="number" value="0" min="0" style="flex: 2" />
+            <button onclick="changeWindow()" style="flex: 1">切换</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="group-title">🔐 允许谁控制我</div>
+          <div class="row">
+            <select id="allow-control-select" onchange="setAllowControl()" style="flex: 1">
+              <option value="any">任何人</option>
+              <option value="admin" selected>管理员（含开发者）</option>
+              <option value="none">不允许任何人</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <button class="primary" onclick="startVideo()">▶ 开启</button>
+          <button class="danger" onclick="stopVideo()">⏹ 停止</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 按钮标签页 -->
+    <div id="tab-buttons" class="tab-content">
+      <div id="buttons-container" class="list-container"></div>
+      <div class="control-panel">
+        <div class="row">
+          <button class="primary" onclick="startMarkButton()">+ 添加按钮</button>
+          <button onclick="loadButtons()">↻ 刷新</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- OCR标签页 -->
+    <div id="tab-ocr" class="tab-content">
+      <div id="ocr-container" class="list-container"></div>
+      <div class="control-panel">
+        <div class="row">
+          <button class="primary" onclick="startMarkOcr()">+ 添加区域</button>
+          <button onclick="loadOcrRegions()">↻ 刷新</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 脚本标签页 -->
+    <div id="tab-scripts" class="tab-content">
+      <div class="script-editor">
+        <div class="row">
+          <input id="script-name" placeholder="脚本名称..." style="flex: 2" />
+          <button onclick="loadSequences()" style="flex: 0; padding: 6px 10px">↻</button>
+        </div>
+        <div id="script-actions" class="script-list"></div>
+        <datalist id="ocr-list-datalist"></datalist>
+        <div class="add-action-row">
+          <select id="action-type" style="flex: 1" onchange="updateParamPlaceholder()">
+            <optgroup label="基本动作">
+              <option value="click">点击按钮</option>
+              <option value="wait">等待(秒)</option>
+              <option value="type">输入文字</option>
+              <option value="press">按键/组合键</option>
+              <option value="call">调用脚本</option>
+            </optgroup>
+            <optgroup label="条件判断">
+              <option value="if">如果(条件)</option>
+              <option value="else">否则(else)</option>
+              <option value="end_if">结束判断(end_if)</option>
+            </optgroup>
+            <optgroup label="循环控制">
+              <option value="start_loop_count">循环(次数)</option>
+              <option value="start_loop_cond">循环(条件)</option>
+              <option value="end_loop">结束循环</option>
+            </optgroup>
+            <optgroup label="跳转">
+              <option value="start_jump">跳转起点</option>
+              <option value="end_jump">跳转终点</option>
+            </optgroup>
+          </select>
+
+          <input id="action-param" placeholder="参数: 按钮名称" style="flex: 2" />
+
+          <div id="condition-params" style="display:none; flex: 2; gap: 4px;">
+            <input id="cond-region" placeholder="OCR区域" list="ocr-list-datalist" style="width: 40%">
+            <select id="cond-op" style="width: 25%">
+              <option value="==">==</option>
+              <option value="!=">!=</option>
+              <option value=">">&gt;</option>
+              <option value="<">&lt;</option>
+              <option value=">=">&gt;=</option>
+              <option value="<=">&lt;=</option>
+            </select>
+            <input id="cond-value" placeholder="值" style="width: 35%">
+          </div>
+
+          <button onclick="addAction()" style="flex: 0">+</button>
+        </div>
+        <div class="row">
+          <button class="success" onclick="runCurrentScript()">▶ 运行</button>
+          <button class="primary" onclick="saveScript()">💾 保存</button>
+          <button class="danger" onclick="stopScript()">⏹ 停止</button>
+        </div>
+        <div class="group-header" style="margin-top: 8px">已保存的脚本</div>
+        <div id="saved-scripts" class="list-container" style="max-height: 150px"></div>
+      </div>
+    </div>
+
+    <!-- AI 标签页 (Sidebar Controls Only) -->
+    <div id="tab-ai" class="tab-content">
+      <div class="control-panel">
+        <div class="group">
+          <div class="group-title">AI 设置</div>
+          <div class="row" style="flex-direction:column;gap:5px">
+            <label style="font-size:12px;color:#888">推理强度</label>
+            <select id="ai-reasoning-effort" style="width:100%">
+              <option value="low">低 (快)</option>
+              <option value="medium" selected>中 (平衡)</option>
+              <option value="high">高 (慢)</option>
+            </select>
+          </div>
+          <div class="row" style="flex-direction:column;gap:5px;margin-top:5px">
+            <label style="font-size:12px;color:#888">允许AI提问</label>
+            <select id="ai-allow-questions" style="width:100%">
+              <option value="true" selected>允许</option>
+              <option value="false">禁止 (自动失败)</option>
+            </select>
+          </div>
+          <div class="row" style="flex-direction:column;gap:5px;margin-top:5px">
+            <label style="font-size:12px;color:#888">OCR 文字辅助</label>
+            <select id="ai-enable-ocr" style="width:100%">
+              <option value="false" selected>关闭 (仅视觉)</option>
+              <option value="true">开启 (视觉+OCR文字)</option>
+            </select>
+          </div>
+          <div class="row" style="flex-direction:column;gap:5px;margin-top:5px">
+            <label style="font-size:12px;color:#888">🐛 调试模式</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <label class="toggle-switch">
+                <input type="checkbox" id="ai-debug-mode">
+                <span class="toggle-slider"></span>
+              </label>
+              <span id="debug-mode-label" style="font-size:11px;color:#666">关闭</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">在线设备概览</div>
+          <div id="ai-sidebar-dev-list" class="device-checkbox-list" style="max-height:150px;border:none;padding:0">
+            <!-- Auto populated -->
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">任务控制</div>
+          <div class="row">
+            <button onclick="stopAllAiTasks()" class="danger" style="width:100%">🛑 停止所有 AI 任务</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="group-title">记忆管理</div>
+          <div class="row">
+            <button onclick="clearAiMemory()" class="danger" style="width:100%">🗑 清除短期记忆</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 分发标签页 -->
+    <div id="tab-dispatch" class="tab-content">
+      <div class="dispatch-panel">
+        <div class="dispatch-section">
+          <div class="dispatch-section-title">
+            <span>📱 选择目标设备</span>
+            <span>
+              <a href="#" style="color: var(--accent); font-size: 10px" onclick="selectAllDevices(true)">全选</a>
+              <span style="color: #555"> | </span>
+              <a href="#" style="color: var(--accent); font-size: 10px" onclick="selectAllDevices(false)">全不选</a>
+            </span>
+          </div>
+          <div id="dispatch-device-list" class="device-checkbox-list"></div>
+        </div>
+        <div class="dispatch-section">
+          <div class="dispatch-section-title">📜 选择脚本</div>
+          <select id="dispatch-script-select" style="width: 100%">
+            <option value="">-- 选择脚本 --</option>
+          </select>
+        </div>
+        <div class="dispatch-section">
+          <div class="row">
+            <button class="success" onclick="dispatchScript()" style="flex: 2">🚀 分发执行</button>
+            <button class="danger" onclick="stopAllRemote()">⏹ 全部停止</button>
+          </div>
+        </div>
+        <div class="dispatch-section-title" style="padding: 10px 10px 0 10px; margin-bottom: 0">
+          <span>📊 任务监控</span>
+          <span style="font-size: 10px; color: #666" id="task-count">0 个任务</span>
+        </div>
+        <div id="task-monitor" class="task-monitor"></div>
+      </div>
+    </div>
+
+  </div><!-- end .sidebar -->
+
+  <!-- 主屏幕区域 -->
+  <div id="main" class="main" tabindex="0">
+    <img id="remote-screen" draggable="false" />
+    <div id="status-bar">就绪</div>
+    <div id="mark-hint" class="mark-hint hidden">在画面上拖拽框选区域，然后松开</div>
+    <div id="selection-rect" class="selection-rect hidden"></div>
+    <div id="highlight-rect" class="highlight-rect hidden"></div>
+    <div id="highlight-rect" class="highlight-rect hidden"></div>
+
+    <!-- AI 聊天界面容器 (Initially Hidden) -->
+    <div id="ai-chat-overlay" class="chat-interface hidden"
+      style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;">
+      <div id="ai-task-status-bar"
+        style="background:#2a2a2a; padding:8px 15px; border-bottom:1px solid #444; color:#ccc; font-size:13px; display:none;">
+        <span style="color:#eab308; font-weight:bold; margin-right:5px">AI Thinking:</span>
+        <span id="ai-thinking-text">Ready</span>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden;">
+        <div id="chat-history" class="chat-history" style="flex:1;">
+          <div class="chat-message ai">
+            你好！我是中央控制 AI。我可以帮你控制连接的设备。<br>
+            试着告诉我："在所有设备上打开记事本" 或 "检查 server1 的状态"。
+          </div>
+        </div>
+        <!-- 调试面板 (默认隐藏) -->
+        <div id="ai-debug-panel" class="ai-debug-panel hidden">
+          <div class="debug-panel-header">
+            <span>🐛 AI 视角调试</span>
+            <button onclick="clearDebugLog()"
+              style="background:none;border:1px solid #555;color:#aaa;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:11px">清除日志</button>
+          </div>
+          <div class="debug-ai-view">
+            <div style="font-size:11px;color:#888;margin-bottom:4px">📷 AI 看到的画面:</div>
+            <img id="debug-ai-frame" alt="等待 AI 截图..."
+              style="width:100%;border-radius:4px;border:1px solid #333;background:#000" />
+          </div>
+          <div style="font-size:11px;color:#888;margin:6px 8px 4px">📋 执行日志:</div>
+          <div id="debug-log" class="debug-log"></div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <textarea id="chat-input" placeholder="输入指令... (Enter 发送, Shift+Enter 换行)" rows="1"></textarea>
+        <button onclick="sendChat()">发送</button>
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <script src="js/script.js"></script>
+</body>
+
+</html>

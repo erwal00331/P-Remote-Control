@@ -1,0 +1,10 @@
+{
+    "server_ip": "Your own server IP address",
+    "server_port": 8100,
+    "my_key": "The key that you edited on the server yourself",
+    "my_name": "测试设备 1",
+    "window": 0,
+    "allow_control": "admin",
+    "web_port": 8000,
+    "enable_gui": true
+}

@@ -1,0 +1,12 @@
+{
+  "_version": 2,
+  "123": {
+    "type": "sequence",
+    "actions": [
+      {
+        "type": "click",
+        "param": "111"
+      }
+    ]
+  }
+}

@@ -1,0 +1,82 @@
+{
+    "secret_keys": {
+        "f9acbd64-922a-43d0-bb88-78d0bcdc050d": {
+            "authority": "developer",
+            "groups": []
+        },
+        "19d40c67-aabb-4d9f-a192-7fc4cd363595": {
+            "authority": "admin",
+            "groups": [
+                "默认分组"
+            ]
+        },
+        "31743158-6736-4152-8a26-5763309da7ff": {
+            "authority": "admin",
+            "groups": [
+                "默认分组"
+            ]
+        },
+        "f4812a79-f997-4b73-ad08-881a1af306c1": {
+            "authority": "user",
+            "groups": [
+                "默认分组"
+            ]
+        },
+        "4699b9f3-27a7-4e95-ade9-a7bc78cb9ca0": {
+            "authority": "user",
+            "groups": [
+                "默认分组"
+            ]
+        },
+        "e109dd3d-a35b-40ff-a6c3-6c9559f47ff7": {
+            "authority": "user",
+            "groups": [
+                "默认分组"
+            ]
+        }
+    },
+    "authority_dict": {
+        "register": [
+            "developer",
+            "admin",
+            "user"
+        ],
+        "divide": [
+            "developer"
+        ],
+        "delete": [
+            "developer",
+            "admin"
+        ],
+        "msg": [
+            "developer",
+            "admin",
+            "user"
+        ],
+        "forward": [
+            "developer",
+            "admin",
+            "user"
+        ],
+        "read": [
+            "developer",
+            "admin",
+            "user"
+        ],
+        "list": [
+            "developer",
+            "admin",
+            "user"
+        ],
+        "broadcast": [
+            "developer",
+            "admin",
+            "user"
+        ],
+        "query_authority": [
+            "developer",
+            "admin",
+            "user"
+        ]
+    }
+}
